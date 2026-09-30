@@ -2,5 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "pnpm install --frozen-lockfile",
-  "ignoreCommand": "if [ \"$VERCEL_ENV\" = \"production\" ]; then echo 'Producció només per promoció explícita d una previsualització.'; exit 0; fi; exit 1"
+  "ignoreCommand": "if [ \"$VERCEL_ENV\" = \"production\" ] && [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; then echo \"Produccio nomes des de main.\"; exit 0; fi; exit 1"
 }
