@@ -21,11 +21,7 @@ export function Hero({ locale, t }: { locale: Locale; t: Dictionary["home"]["her
 
       <Container className="w-full">
         <div className="max-w-4xl">
-          <p className="inline-flex animate-rise items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur">
-            <Icon name="shield" className="size-4 text-leaf-400" />
-            {t.eyebrow}
-          </p>
-          <h1 className="mt-6 animate-rise text-5xl font-semibold leading-[0.98] text-white [animation-delay:120ms] sm:text-7xl lg:text-8xl">
+          <h1 className="animate-rise text-5xl font-semibold leading-[0.98] text-white [animation-delay:120ms] sm:text-7xl lg:text-8xl">
             {t.title}
             <span className="relative block text-leaf-400">
               {t.titleAccent}

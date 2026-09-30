@@ -2,9 +2,10 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRef } from "react";
 import type { Dictionary } from "@/content";
 import { Icon, type IconName } from "../icons";
+import { useNearViewport, useReducedMotion, useRenderMode, useScrollProgress } from "../three/scroll-scene";
 import { Eyebrow } from "../ui";
 
 // three.js pesa: només es descarrega quan la secció és a prop de la pantalla.
@@ -12,78 +13,13 @@ const BottleScene = dynamic(() => import("./BottleScene"), { ssr: false });
 
 const valueIcons: IconName[] = ["leaf", "recycle", "globe", "users"];
 
-let webgl: boolean | undefined;
-function supportsWebGL() {
-  if (webgl === undefined) {
-    try {
-      const canvas = document.createElement("canvas");
-      webgl = Boolean(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
-    } catch {
-      webgl = false;
-    }
-  }
-  return webgl;
-}
-
-const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
-const noop = () => () => {};
-const subscribeReducedMotion = (callback: () => void) => {
-  const media = window.matchMedia(reducedMotionQuery);
-  media.addEventListener("change", callback);
-  return () => media.removeEventListener("change", callback);
-};
-
-// Al servidor no sabem res del navegador: «pending» fins que hidrata.
-function useRenderMode() {
-  return useSyncExternalStore(noop, () => (supportsWebGL() ? "3d" : "static"), () => "pending" as const);
-}
-function useReducedMotion() {
-  return useSyncExternalStore(subscribeReducedMotion, () => window.matchMedia(reducedMotionQuery).matches, () => false);
-}
-
 export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
   const section = useRef<HTMLElement>(null);
-  const progress = useRef(0);
-  const captions = useRef<HTMLDivElement>(null);
+  const progress = useScrollProgress(section);
   const mode = useRenderMode();
   const reducedMotion = useReducedMotion();
-  const [near, setNear] = useState(false);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const element = section.current;
-    if (!element) return;
-    const nearObserver = new IntersectionObserver(([entry]) => entry?.isIntersecting && setNear(true), { rootMargin: "800px 0px" });
-    const visibleObserver = new IntersectionObserver(([entry]) => setVisible(Boolean(entry?.isIntersecting)));
-    nearObserver.observe(element);
-    visibleObserver.observe(element);
-    return () => {
-      nearObserver.disconnect();
-      visibleObserver.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const element = section.current;
-      if (!element) return;
-      const rect = element.getBoundingClientRect();
-      const distance = rect.height - window.innerHeight;
-      progress.current = distance > 0 ? Math.min(1, Math.max(0, -rect.top / distance)) : 1;
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
-
-  // Els rètols «Frontal / Posterior» apareixen quan les ampolles aterren, sense re-renderitzar React.
-  const onSettle = useCallback((settle: number) => {
-    if (captions.current) captions.current.style.opacity = String(settle);
-  }, []);
+  // Muntem l'escena amb marge: així la descàrrega i la compilació de shaders passen abans d'arribar-hi.
+  const near = useNearViewport(section);
 
   const is3d = mode === "3d";
 
@@ -92,7 +28,7 @@ export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
       <div className={`${is3d ? "sticky top-0 h-[100svh]" : "py-24"} overflow-hidden`}>
         {is3d && near && (
           <div className="absolute inset-0">
-            <BottleScene progress={progress} onSettle={onSettle} reducedMotion={reducedMotion} active={visible} />
+            <BottleScene progress={progress} reducedMotion={reducedMotion} />
           </div>
         )}
 
@@ -123,17 +59,6 @@ export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
           )}
         </div>
 
-        {is3d && (
-          <div
-            ref={captions}
-            aria-hidden="true"
-            style={{ opacity: 0 }}
-            className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center gap-[18vw] text-xs font-semibold uppercase tracking-[0.3em] text-ink-700 transition-opacity lg:bottom-10 lg:left-[40%] lg:gap-[12vw]"
-          >
-            <span>{t.front}</span>
-            <span>{t.back}</span>
-          </div>
-        )}
 
         {/* Per a lectors de pantalla i cercadors: el contingut de l'ampolla com a text. */}
         <p className="sr-only">

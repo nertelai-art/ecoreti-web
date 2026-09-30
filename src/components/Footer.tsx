@@ -55,18 +55,8 @@ export function Footer({ locale, t }: { locale: Locale; t: Dictionary }) {
         </div>
       </div>
 
-      <div className="border-t border-white/10 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 py-6 sm:px-6 lg:flex-row lg:justify-between lg:px-8">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-            <Image src="/images/logos/financiado-ue-nextgeneration.png" alt="Financiado por la Unión Europea — NextGenerationEU" width={144} height={36} className="h-9 w-auto" />
-            <Image src="/images/logos/prtr.png" alt="Plan de Recuperación, Transformación y Resiliencia" width={176} height={36} className="h-9 w-auto" />
-            <Image src="/images/logos/kit-digital.png" alt="Kit Digital" width={130} height={36} className="h-9 w-auto" />
-          </div>
-          <p className="max-w-md text-center text-xs leading-relaxed text-ink-500 lg:text-right">{t.footer.funding}</p>
-        </div>
-      </div>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-ink-300 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+      <div className="mx-auto flex max-w-7xl flex-col gap-3 border-t border-white/10 px-4 py-6 text-sm text-ink-300 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
         <p>
           © {year} {site.legalName}. {t.footer.rights}
         </p>
