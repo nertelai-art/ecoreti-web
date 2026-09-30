@@ -1,0 +1,118 @@
+import { CanvasTexture, SRGBColorSpace } from "three";
+import { iconPaths, type IconName } from "../icons";
+
+// Geometria de l'etiqueta: un cilindre obert una mica més gran que el vidre.
+export const LABEL_RADIUS = 0.626;
+export const LABEL_HEIGHT = 2.75;
+
+// La textura cobreix tota la circumferència: la meitat esquerra és el frontal i la dreta, el posterior.
+const W = 2048;
+const H = Math.round((W * LABEL_HEIGHT) / (2 * Math.PI * LABEL_RADIUS));
+const FRONT_X = W / 4;
+const BACK_X = (W * 3) / 4;
+
+const INK = "#476577";
+const LEAF = "#7dc62b";
+
+type Segment = { text: string; color?: string };
+
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
+}
+
+function drawIcon(ctx: CanvasRenderingContext2D, name: IconName, x: number, y: number, size: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 24, size / 24);
+  ctx.strokeStyle = LEAF;
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (const d of iconPaths[name]) ctx.stroke(new Path2D(d));
+  ctx.restore();
+}
+
+function drawLine(ctx: CanvasRenderingContext2D, segments: Segment[], x: number, y: number) {
+  let cursor = x;
+  for (const segment of segments) {
+    ctx.fillStyle = segment.color ?? INK;
+    ctx.fillText(segment.text, cursor, y);
+    cursor += ctx.measureText(segment.text).width;
+  }
+}
+
+function drawCaps(ctx: CanvasRenderingContext2D, lines: string[], x: number, y: number, family: string) {
+  ctx.font = `500 36px ${family}`;
+  ctx.letterSpacing = "4px";
+  ctx.fillStyle = INK;
+  lines.forEach((line, i) => ctx.fillText(line, x, y + i * 50));
+  ctx.letterSpacing = "0px";
+}
+
+/** Dibuixa la impressió de l'ampolla (proposta 1) i la retorna com a textura. */
+export async function createLabelTexture(): Promise<CanvasTexture> {
+  const family = getComputedStyle(document.documentElement).getPropertyValue("--font-barlow").trim() || "sans-serif";
+  await Promise.all([document.fonts.load(`600 80px ${family}`), document.fonts.load(`500 36px ${family}`)]);
+  const logo = await loadImage("/images/logos/eco-reti.png");
+
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  ctx.textBaseline = "alphabetic";
+
+  // ── Frontal ──
+  const logoWidth = 540;
+  const logoHeight = (logoWidth * logo.height) / logo.width;
+  ctx.drawImage(logo, FRONT_X - logoWidth / 2, 70, logoWidth, logoHeight);
+
+  const left = FRONT_X - 250;
+  ctx.fillStyle = LEAF;
+  ctx.beginPath();
+  ctx.roundRect(left, 480, 120, 14, 7);
+  ctx.fill();
+
+  ctx.font = `600 84px ${family}`;
+  const headline: Segment[][] = [[{ text: "Avancem" }], [{ text: "cap a un" }], [{ text: "futur més" }], [{ text: "segur.", color: LEAF }]];
+  headline.forEach((line, i) => drawLine(ctx, line, left, 610 + i * 96));
+
+  drawIcon(ctx, "leaf", left, 1050, 150);
+  drawCaps(ctx, ["PERSONES", "ENTORNS", "SOLUCIONS", "SOSTENIBLES"], left + 200, 1080, family);
+
+  // ── Posterior ──
+  const backLeft = BACK_X - 270;
+  const rows: { icon: IconName; lines: string[] }[] = [
+    { icon: "leaf", lines: ["RETIRAR", "AMB SEGURETAT"] },
+    { icon: "recycle", lines: ["PROTEGIR", "LES PERSONES"] },
+    { icon: "globe", lines: ["RECUPERAR", "ELS ENTORNS"] },
+    { icon: "users", lines: ["CONSTRUIR", "UN DEMÀ", "MÉS SOSTENIBLE"] },
+  ];
+  rows.forEach((row, i) => {
+    const y = 110 + i * 235;
+    drawIcon(ctx, row.icon, backLeft, y, 120);
+    drawCaps(ctx, row.lines, backLeft + 175, y + 40, family);
+  });
+
+  ctx.fillStyle = LEAF;
+  ctx.beginPath();
+  ctx.roundRect(backLeft, 1110, 120, 14, 7);
+  ctx.fill();
+
+  ctx.font = `600 62px ${family}`;
+  const claim: Segment[][] = [
+    [{ text: "Compromesos" }],
+    [{ text: "amb les " }, { text: "persones", color: LEAF }],
+    [{ text: "i el " }, { text: "territori.", color: LEAF }],
+  ];
+  claim.forEach((line, i) => drawLine(ctx, line, backLeft, 1210 + i * 74));
+
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
+  return texture;
+}

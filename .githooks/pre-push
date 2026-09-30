@@ -1,0 +1,6 @@
+#!/bin/sh
+# Portes barates en local abans de pujar: tipus, lint i tests.
+set -e
+pnpm typecheck
+pnpm lint
+pnpm test

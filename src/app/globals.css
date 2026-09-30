@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+
+  /* Colors del logo: pissarra (#476577) i verd fulla (#82cc2a). */
+  --color-ink-50: #f3f6f7;
+  --color-ink-100: #e4eaed;
+  --color-ink-200: #c9d4da;
+  --color-ink-300: #9fb1bb;
+  --color-ink-500: #5f7887;
+  --color-ink-600: #476577;
+  --color-ink-700: #394f5d;
+  --color-ink-800: #2a3a45;
+  --color-ink-900: #1b262e;
+  --color-ink-950: #111920;
+
+  --color-leaf-300: #b5e37a;
+  --color-leaf-400: #9ad84f;
+  --color-leaf-500: #82cc2a;
+  --color-leaf-600: #67a81c;
+  /* Per a text verd petit sobre blanc: el verd del logo no arriba a contrast AA. */
+  --color-leaf-700: #4a7d10;
+
+  --color-mist: #eef2f3;
+  --color-strap: #ff6b1a;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-wave: wave 3.5s linear infinite;
+  --animate-rise: rise 0.9s var(--ease-out-expo) both;
+
+  /* L'ona té un període de 150/400 de l'amplada del SVG: desplaçar-la 37,5% fa el bucle continu. */
+  @keyframes wave {
+    to { transform: translateX(-37.5%); }
+  }
+  @keyframes heroZoom {
+    from { transform: scale(1.12); }
+    to { transform: scale(1.02); }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+:root {
+  /* El disseny és clar: ho declarem perquè els navegadors en mode fosc no pintin controls foscos. */
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--color-leaf-400);
+  color: var(--color-ink-950);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-leaf-500);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Revelat en fer scroll. Sense JS, el contingut es veu igualment. */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s var(--ease-out-expo), transform 0.9s var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.js [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
