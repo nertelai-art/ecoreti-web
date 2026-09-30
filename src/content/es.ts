@@ -20,7 +20,6 @@ const es = {
         "Empresa inscrita en el RERA especializada en retirada de amianto (uralita), sustitución de cubiertas y gestión de residuos en Girona y toda Cataluña. Pide tu presupuesto.",
     },
     hero: {
-      eyebrow: "Empresa inscrita en el RERA · Girona y toda Cataluña",
       title: "Retiramos el amianto.",
       titleAccent: "Renovamos tu cubierta.",
       lead: "Desmontaje seguro de cubiertas de fibrocemento (uralita), gestión de residuos y cubierta nueva, eficiente y con garantía. Nos ocupamos de todo, del plan de trabajo al último certificado.",
@@ -89,6 +88,19 @@ const es = {
       text: "Cuéntanos tu caso y te preparamos una propuesta adaptada, con total transparencia desde el primer momento.",
       button: "Pedir presupuesto",
     },
+  },
+  roof: {
+    eyebrow: "Así trabajamos",
+    title: "De la uralita",
+    accent: "al sol.",
+    lead: "Retiramos la cubierta de fibrocemento con amianto, instalamos una cubierta nueva y la dejamos lista para producir energía.",
+    steps: [
+      { title: "Cubierta de uralita", text: "Fibrocemento con amianto, envejecido y frágil." },
+      { title: "Retirada segura", text: "Placa a placa, con plan de trabajo aprobado y el residuo encapsulado." },
+      { title: "Cubierta nueva", text: "Panel sándwich aislante, estanco y duradero." },
+      { title: "Placas solares", text: "La cubierta queda lista para generar energía limpia." },
+    ],
+    imageAlt: "Nave industrial con la cubierta de fibrocemento en proceso de retirada y placas solares instaladas",
   },
   bottle: {
     eyebrow: "Nuestro compromiso",

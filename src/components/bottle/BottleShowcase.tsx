@@ -2,9 +2,10 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useRef } from "react";
 import type { Dictionary } from "@/content";
 import { Icon, type IconName } from "../icons";
+import { useNearViewport, useReducedMotion, useRenderMode, useScrollProgress } from "../three/scroll-scene";
 import { Eyebrow } from "../ui";
 
 // three.js pesa: només es descarrega quan la secció és a prop de la pantalla.
@@ -12,72 +13,13 @@ const BottleScene = dynamic(() => import("./BottleScene"), { ssr: false });
 
 const valueIcons: IconName[] = ["leaf", "recycle", "globe", "users"];
 
-let webgl: boolean | undefined;
-function supportsWebGL() {
-  if (webgl === undefined) {
-    try {
-      const canvas = document.createElement("canvas");
-      webgl = Boolean(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
-    } catch {
-      webgl = false;
-    }
-  }
-  return webgl;
-}
-
-const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
-const noop = () => () => {};
-const subscribeReducedMotion = (callback: () => void) => {
-  const media = window.matchMedia(reducedMotionQuery);
-  media.addEventListener("change", callback);
-  return () => media.removeEventListener("change", callback);
-};
-
-// Al servidor no sabem res del navegador: «pending» fins que hidrata.
-function useRenderMode() {
-  return useSyncExternalStore(noop, () => (supportsWebGL() ? "3d" : "static"), () => "pending" as const);
-}
-function useReducedMotion() {
-  return useSyncExternalStore(subscribeReducedMotion, () => window.matchMedia(reducedMotionQuery).matches, () => false);
-}
-
 export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
   const section = useRef<HTMLElement>(null);
-  const progress = useRef(0);
+  const progress = useScrollProgress(section);
   const mode = useRenderMode();
   const reducedMotion = useReducedMotion();
-  const [near, setNear] = useState(false);
-
   // Muntem l'escena amb marge: així la descàrrega i la compilació de shaders passen abans d'arribar-hi.
-  useEffect(() => {
-    const element = section.current;
-    if (!element) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry?.isIntersecting) {
-        setNear(true);
-        observer.disconnect();
-      }
-    }, { rootMargin: "1500px 0px" });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const element = section.current;
-      if (!element) return;
-      const rect = element.getBoundingClientRect();
-      const distance = rect.height - window.innerHeight;
-      progress.current = distance > 0 ? Math.min(1, Math.max(0, -rect.top / distance)) : 1;
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
+  const near = useNearViewport(section);
 
   const is3d = mode === "3d";
 
