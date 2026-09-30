@@ -203,7 +203,6 @@ function Building({ progress, reducedMotion }: RoofSceneState) {
     const p = smooth.current;
 
     // Càmera: gira lleugerament cap al frontal a mesura que avança l'obra.
-    const wide = size.width / size.height > 1.1;
     // Distància perquè hi càpiga la nau (≈12 unitats d'ample) també en pantalles estretes.
     const aspect = size.width / size.height;
     const radius = Math.max(15.5, FIT_WIDTH / 2 / (Math.tan(MathUtils.degToRad(FOV / 2)) * Math.min(aspect, 1.4)));
