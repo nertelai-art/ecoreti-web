@@ -14,33 +14,98 @@ function canvasTexture(width: number, height: number, draw: (ctx: CanvasRenderin
   return texture;
 }
 
-/** Paret de maó de nau industrial, amb una franja de finestres com a les fotos d'obra. */
-export function brickTexture() {
-  const random = seededRandom(11);
-  const texture = canvasTexture(512, 256, (ctx) => {
-    ctx.fillStyle = "#8e4f3a";
-    ctx.fillRect(0, 0, 512, 256);
-    const bw = 32;
-    const bh = 12;
-    for (let row = 0; row * bh < 256; row++) {
-      const offset = row % 2 ? bw / 2 : 0;
-      for (let x = -bw; x < 512; x += bw) {
-        const tone = 0.85 + random() * 0.3;
-        ctx.fillStyle = `rgb(${Math.round(160 * tone)}, ${Math.round(88 * tone)}, ${Math.round(62 * tone)})`;
-        ctx.fillRect(x + offset + 1, row * bh + 1, bw - 2, bh - 2);
-      }
+// Escala comuna de les parets: 192 px per metre, perquè el maó mesuri igual a totes les cares.
+const PX_PER_M = 192;
+const BRICK_W = 40; // ≈ 21 cm
+const BRICK_H = 11; // ≈ 6 cm amb el morter
+
+function drawBricks(ctx: CanvasRenderingContext2D, width: number, height: number, seed: number) {
+  const random = seededRandom(seed);
+  ctx.fillStyle = "#8a5040";
+  ctx.fillRect(0, 0, width, height);
+  for (let row = 0; row * BRICK_H < height; row++) {
+    const offset = row % 2 ? BRICK_W / 2 : 0;
+    for (let x = -BRICK_W; x < width; x += BRICK_W) {
+      const tone = 0.86 + random() * 0.26;
+      ctx.fillStyle = `rgb(${Math.round(158 * tone)}, ${Math.round(86 * tone)}, ${Math.round(60 * tone)})`;
+      ctx.fillRect(x + offset + 1, row * BRICK_H + 1, BRICK_W - 2, BRICK_H - 2);
     }
-    // Franja de finestres
-    for (let x = 16; x < 512; x += 64) {
-      ctx.fillStyle = "#3b4a52";
-      ctx.fillRect(x, 70, 44, 40);
-      ctx.fillStyle = "#6f8791";
-      ctx.fillRect(x + 3, 73, 18, 34);
-      ctx.fillRect(x + 23, 73, 18, 34);
+  }
+}
+
+/** Finestra de nau: marc d'acer, tres fulles, vidre amb reflex i ampit de formigó. */
+function drawWindow(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
+  ctx.fillStyle = "#2f3a40";
+  ctx.fillRect(x, y, w, h);
+  const frame = 7;
+  const panes = 3;
+  const paneW = (w - frame * (panes + 1)) / panes;
+  for (let i = 0; i < panes; i++) {
+    const px = x + frame + i * (paneW + frame);
+    const glass = ctx.createLinearGradient(px, y, px + paneW, y + h);
+    glass.addColorStop(0, "#9fb6c2");
+    glass.addColorStop(0.45, "#5f7885");
+    glass.addColorStop(1, "#3d525d");
+    ctx.fillStyle = glass;
+    ctx.fillRect(px, y + frame, paneW, h - frame * 2);
+    // Reflex en diagonal
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(px, y + frame, paneW, h - frame * 2);
+    ctx.clip();
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    ctx.beginPath();
+    ctx.moveTo(px + paneW * 0.2, y);
+    ctx.lineTo(px + paneW * 0.55, y);
+    ctx.lineTo(px + paneW * 0.15, y + h);
+    ctx.lineTo(px - paneW * 0.2, y + h);
+    ctx.fill();
+    ctx.restore();
+    // Travesser horitzontal
+    ctx.fillStyle = "#2f3a40";
+    ctx.fillRect(px, y + h * 0.42, paneW, 5);
+  }
+  ctx.fillStyle = "#c9c3b8";
+  ctx.fillRect(x - 10, y + h, w + 20, 10);
+}
+
+function wallTexture(width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void) {
+  const texture = canvasTexture(width, height, draw);
+  texture.wrapS = RepeatWrapping;
+  return texture;
+}
+
+/** Tram de paret llarga (≈2,7 m): maó i una finestra gran. Es repeteix al llarg de la nau. */
+export function longWallTexture(segmentMeters: number, heightMeters: number) {
+  const width = Math.round(segmentMeters * PX_PER_M);
+  const height = Math.round(heightMeters * PX_PER_M);
+  return wallTexture(width, height, (ctx) => {
+    drawBricks(ctx, width, height, 11);
+    const w = 1.45 * PX_PER_M;
+    const h = 0.8 * PX_PER_M;
+    drawWindow(ctx, (width - w) / 2, height * 0.18, w, h);
+  });
+}
+
+/** Paret curta: maó i una porta industrial de persiana. */
+export function endWallTexture(widthMeters: number, heightMeters: number) {
+  const width = Math.round(widthMeters * PX_PER_M);
+  const height = Math.round(heightMeters * PX_PER_M);
+  return wallTexture(width, height, (ctx) => {
+    drawBricks(ctx, width, height, 17);
+    const w = 2.1 * PX_PER_M;
+    const h = 1.75 * PX_PER_M;
+    const x = (width - w) / 2;
+    const y = height - h;
+    ctx.fillStyle = "#6b7378";
+    ctx.fillRect(x - 8, y - 8, w + 16, h + 8);
+    for (let slat = y; slat < height; slat += 12) {
+      ctx.fillStyle = (slat - y) % 24 ? "#b8bfc3" : "#a5adb2";
+      ctx.fillRect(x, slat, w, 11);
     }
   });
-  texture.wrapS = texture.wrapT = RepeatWrapping;
-  return texture;
 }
 
 /** Fibrociment envellit: gris beix amb taques de líquen i brutícia. */

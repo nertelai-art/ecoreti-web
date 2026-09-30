@@ -19,7 +19,7 @@ import {
 } from "three";
 import { seededRandom } from "@/lib/random";
 import { ROOF_PHASES } from "./roof-phases";
-import { brickTexture, fibrocementTexture, radialFade, solarTexture } from "./roof-textures";
+import { endWallTexture, fibrocementTexture, longWallTexture, radialFade, solarTexture } from "./roof-textures";
 
 // ── Mides de la nau (unitats ≈ metres a escala 1:2) ──
 const W = 8; // llargada, al llarg del carener
@@ -36,6 +36,7 @@ const SHEET_ROWS = 3;
 const SHEET_W = ROOF_W / SHEET_COLS;
 const SHEET_L = SLOPE_LEN / SHEET_ROWS + 0.08;
 
+const WALL_SEGMENTS = 3; // trams de paret llarga, un amb finestra cadascun
 const FOV = 32;
 const FIT_WIDTH = 12.5;
 
@@ -161,7 +162,7 @@ function Building({ progress, reducedMotion }: RoofSceneState) {
   const smooth = useRef(reducedMotion ? 1 : (progress.current ?? 0));
   const { invalidate, camera, size } = useThree();
 
-  const textures = useMemo(() => ({ brick: brickTexture(), fibro: fibrocementTexture(), solar: solarTexture(), groundFade: radialFade() }), []);
+  const textures = useMemo(() => ({ longWall: longWallTexture(W / WALL_SEGMENTS, H), endWall: endWallTexture(D, H), fibro: fibrocementTexture(), solar: solarTexture(), groundFade: radialFade() }), []);
   const geometries = useMemo(() => {
     const gable = new Shape();
     gable.moveTo(-D / 2, 0);
@@ -178,7 +179,7 @@ function Building({ progress, reducedMotion }: RoofSceneState) {
   useEffect(() => () => Object.values(textures).forEach((texture) => texture.dispose()), [textures]);
 
   useEffect(() => {
-    textures.brick.repeat.set(3, 1);
+    textures.longWall.repeat.set(WALL_SEGMENTS, 1);
     const onScroll = () => invalidate();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -273,9 +274,16 @@ function Building({ progress, reducedMotion }: RoofSceneState) {
       </mesh>
 
       {/* Parets i timpans */}
+      {/* Ordre de cares de la caixa: +x, -x, +y, -y, +z, -z. La de dalt és l'interior de la nau,
+          que es veu quan marxen les plaques: fosca i sense maó. */}
       <mesh position={[0, H / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[W, H, D]} />
-        <meshStandardMaterial map={textures.brick} roughness={0.95} />
+        <meshStandardMaterial attach="material-0" map={textures.endWall} roughness={0.95} />
+        <meshStandardMaterial attach="material-1" map={textures.endWall} roughness={0.95} />
+        <meshStandardMaterial attach="material-2" color="#3a3f43" roughness={1} />
+        <meshStandardMaterial attach="material-3" color="#3a3f43" roughness={1} />
+        <meshStandardMaterial attach="material-4" map={textures.longWall} roughness={0.95} />
+        <meshStandardMaterial attach="material-5" map={textures.longWall} roughness={0.95} />
       </mesh>
       {[1, -1].map((side) => (
         <mesh key={side} position={[(side * W) / 2, H, 0]} rotation-y={(side * Math.PI) / 2} castShadow>
