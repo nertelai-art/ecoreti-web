@@ -54,15 +54,29 @@ function drawCaps(ctx: CanvasRenderingContext2D, lines: string[], x: number, y: 
   ctx.letterSpacing = "0px";
 }
 
-/** Dibuixa la impressió de l'ampolla (proposta 1) i la retorna com a textura. */
-export async function createLabelTexture(): Promise<CanvasTexture> {
+/**
+ * Crea la textura de la impressió (proposta 1) buida i la dibuixa quan tenim tipografia i logo.
+ * La textura existeix des del primer fotograma perquè el material es compili una sola vegada:
+ * si arribés més tard, el canvi de shader faria una estrebada en plena animació.
+ */
+export function createLabelTexture(): { texture: CanvasTexture; ready: Promise<void> } {
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.anisotropy = 8;
+  const ready = drawLabel(canvas).then(() => {
+    texture.needsUpdate = true;
+  });
+  return { texture, ready };
+}
+
+async function drawLabel(canvas: HTMLCanvasElement) {
   const family = getComputedStyle(document.documentElement).getPropertyValue("--font-barlow").trim() || "sans-serif";
   await Promise.all([document.fonts.load(`600 80px ${family}`), document.fonts.load(`500 36px ${family}`)]);
   const logo = await loadImage("/images/logos/eco-reti.png");
 
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
   const ctx = canvas.getContext("2d")!;
   ctx.textBaseline = "alphabetic";
 
@@ -110,9 +124,4 @@ export async function createLabelTexture(): Promise<CanvasTexture> {
     [{ text: "i el " }, { text: "territori.", color: LEAF }],
   ];
   claim.forEach((line, i) => drawLine(ctx, line, backLeft, 1210 + i * 74));
-
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  texture.anisotropy = 8;
-  return texture;
 }

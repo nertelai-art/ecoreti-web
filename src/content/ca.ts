@@ -96,8 +96,6 @@ const ca: Dictionary = {
     title: "Avancem cap a un futur més",
     accent: "segur.",
     lead: "La nostra ampolla reutilitzable porta imprès el que guia cada obra: persones, entorns i solucions sostenibles.",
-    front: "Frontal",
-    back: "Posterior",
     values: ["Retirar amb seguretat", "Protegir les persones", "Recuperar els entorns", "Construir un demà més sostenible"],
     claim: "Compromesos amb les persones i el territori.",
     imageAlt: "Ampolla de vidre reutilitzable d'Eco-Reti amb tap metàl·lic i cordó taronja, vista frontal i posterior",

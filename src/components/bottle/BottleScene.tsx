@@ -1,9 +1,9 @@
 "use client";
 
-import { ContactShadows, Environment, Lightformer } from "@react-three/drei";
+import { Environment, Lightformer, PerformanceMonitor, Preload } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { CatmullRomCurve3, DoubleSide, MathUtils, Vector2, Vector3, type CanvasTexture, type Group } from "three";
+import { CanvasTexture, CatmullRomCurve3, MathUtils, Vector2, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { createLabelTexture, LABEL_HEIGHT, LABEL_RADIUS } from "./label-texture";
 
 const R = 0.62;
@@ -13,23 +13,20 @@ const LABEL_BOTTOM = 0.3;
 export type SceneState = {
   /** Progrés del scroll dins la secció, de 0 a 1. */
   progress: RefObject<number>;
-  /** Es crida a cada fotograma amb el grau d'«aterratge» (0-1) per sincronitzar l'HTML. */
-  onSettle?: (settle: number) => void;
   reducedMotion: boolean;
-  active: boolean;
 };
 
 function useBottleGeometry() {
   return useMemo(() => {
     const body: Vector2[] = [new Vector2(0, 0)];
     const corner = 0.14;
-    for (let i = 0; i <= 10; i++) {
-      const a = -Math.PI / 2 + (i / 10) * (Math.PI / 2);
+    for (let i = 0; i <= 8; i++) {
+      const a = -Math.PI / 2 + (i / 8) * (Math.PI / 2);
       body.push(new Vector2(R - corner + corner * Math.cos(a), corner + corner * Math.sin(a)));
     }
     body.push(new Vector2(R, 3.05));
-    for (let i = 1; i <= 14; i++) {
-      const t = i / 14;
+    for (let i = 1; i <= 12; i++) {
+      const t = i / 12;
       const eased = t * t * (3 - 2 * t);
       body.push(new Vector2(R - (R - 0.5) * eased, 3.05 + 0.42 * t));
     }
@@ -62,82 +59,97 @@ function useBottleGeometry() {
   }, []);
 }
 
-function Bottle({ label, groupRef, mirrorStrap = false }: { label: CanvasTexture | null; groupRef: RefObject<Group | null>; mirrorStrap?: boolean }) {
+/** Ombra difusa pintada un sol cop: substitueix ContactShadows, que re-renderitzava l'escena cada fotograma. */
+function useShadowTexture() {
+  return useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 128;
+    const ctx = canvas.getContext("2d")!;
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gradient.addColorStop(0, "rgba(27,38,46,0.55)");
+    gradient.addColorStop(0.5, "rgba(27,38,46,0.18)");
+    gradient.addColorStop(1, "rgba(27,38,46,0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+    return new CanvasTexture(canvas);
+  }, []);
+}
+
+function Bottle({ label, groupRef, mirrorStrap = false }: { label: CanvasTexture; groupRef: RefObject<Group | null>; mirrorStrap?: boolean }) {
   const { body, cap, strap } = useBottleGeometry();
   return (
     <group ref={groupRef}>
       <group position={[0, -BOTTLE_HEIGHT / 2, 0]}>
-        {/* Vidre */}
-        <mesh castShadow>
-          <latheGeometry args={[body, 128]} />
-          <meshPhysicalMaterial
-            transmission={1}
-            thickness={0.2}
-            roughness={0}
-            ior={1.45}
-            color="#ffffff"
-            clearcoat={1}
-            clearcoatRoughness={0.05}
-            envMapIntensity={1.4}
-            side={DoubleSide}
-          />
+        {/* Vidre. Una sola cara: la doble cara afegeix una passada de transmissió sencera. */}
+        <mesh>
+          <latheGeometry args={[body, 72]} />
+          <meshPhysicalMaterial transmission={1} thickness={0.2} roughness={0} ior={1.45} color="#ffffff" clearcoat={1} clearcoatRoughness={0.05} envMapIntensity={1.4} />
         </mesh>
         {/* Cul gruixut de vidre */}
         <mesh position={[0, 0.09, 0]}>
-          <cylinderGeometry args={[R - 0.05, R - 0.08, 0.16, 96]} />
+          <cylinderGeometry args={[R - 0.05, R - 0.08, 0.16, 48]} />
           <meshPhysicalMaterial transmission={1} thickness={0.6} roughness={0.08} ior={1.5} color="#eef5f6" envMapIntensity={1.2} />
         </mesh>
         {/* Rosca del coll, que es veu a través del vidre */}
         <mesh position={[0, 3.5, 0]}>
-          <cylinderGeometry args={[0.49, 0.49, 0.12, 64]} />
+          <cylinderGeometry args={[0.49, 0.49, 0.12, 48]} />
           <meshStandardMaterial color="#39424a" metalness={0.6} roughness={0.4} />
         </mesh>
         {/* Tap d'acer */}
-        <mesh castShadow>
-          <latheGeometry args={[cap, 96]} />
+        <mesh>
+          <latheGeometry args={[cap, 64]} />
           <meshStandardMaterial color="#c3c8cc" metalness={1} roughness={0.26} envMapIntensity={1.3} />
         </mesh>
-        {/* Cordó: a l ampolla girada (posterior) el reflectim perquè totes dues el tinguin a la dreta, com a la proposta. */}
-        <mesh castShadow rotation-y={mirrorStrap ? Math.PI : 0}>
-          <tubeGeometry args={[strap, 160, 0.05, 14, true]} />
+        {/* Cordó: a l'ampolla girada el reflectim perquè totes dues el tinguin a la dreta, com a la proposta. */}
+        <mesh rotation-y={mirrorStrap ? Math.PI : 0}>
+          <tubeGeometry args={[strap, 96, 0.05, 10, true]} />
           <meshStandardMaterial color="#ff6a1a" roughness={0.85} />
         </mesh>
         {/* Impressió: frontal i posterior en una sola textura */}
-        {label && (
-          <mesh position={[0, LABEL_BOTTOM + LABEL_HEIGHT / 2, 0]} renderOrder={2}>
-            <cylinderGeometry args={[LABEL_RADIUS, LABEL_RADIUS, LABEL_HEIGHT, 192, 1, true, -Math.PI / 2, Math.PI * 2]} />
-            <meshBasicMaterial map={label} transparent depthWrite={false} toneMapped={false} />
-          </mesh>
-        )}
+        <mesh position={[0, LABEL_BOTTOM + LABEL_HEIGHT / 2, 0]} renderOrder={2}>
+          <cylinderGeometry args={[LABEL_RADIUS, LABEL_RADIUS, LABEL_HEIGHT, 128, 1, true, -Math.PI / 2, Math.PI * 2]} />
+          <meshBasicMaterial map={label} transparent depthWrite={false} toneMapped={false} />
+        </mesh>
       </group>
     </group>
   );
 }
 
-const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+function BlobShadow({ meshRef, texture, scale }: { meshRef: RefObject<Mesh | null>; texture: CanvasTexture; scale: number }) {
+  return (
+    <mesh ref={meshRef} rotation-x={-Math.PI / 2} scale={[2.4 * scale, 1.1 * scale, 1]}>
+      <planeGeometry />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} toneMapped={false} opacity={0} />
+    </mesh>
+  );
+}
 
-function Bottles({ progress, onSettle, reducedMotion }: Omit<SceneState, "active">) {
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+const SMOOTHING = 5;
+// Un salt de temps gran (pestanya en segon pla, pausa del navegador) no ha de fer saltar l'animació.
+const MAX_DELTA = 1 / 30;
+
+function Bottles({ progress, reducedMotion }: SceneState) {
   const left = useRef<Group>(null);
   const right = useRef<Group>(null);
-  const smooth = useRef(reducedMotion ? 1 : 0);
-  const [label, setLabel] = useState<CanvasTexture | null>(null);
-  const { viewport } = useThree();
+  const leftShadow = useRef<Mesh>(null);
+  const rightShadow = useRef<Mesh>(null);
+  const smooth = useRef(reducedMotion ? 1 : (progress.current ?? 0));
+  const { viewport, invalidate } = useThree();
+  const shadowTexture = useShadowTexture();
+  const [label] = useState(createLabelTexture);
 
   useEffect(() => {
-    let texture: CanvasTexture | undefined;
-    let cancelled = false;
-    createLabelTexture()
-      .then((created) => {
-        if (cancelled) return created.dispose();
-        texture = created;
-        setLabel(created);
-      })
-      .catch((error) => console.error("[ampolla] no s'ha pogut dibuixar l'etiqueta", error));
-    return () => {
-      cancelled = true;
-      texture?.dispose();
-    };
-  }, []);
+    label.ready.then(() => invalidate()).catch((error) => console.error("[ampolla] etiqueta:", error instanceof Error ? error.message : error));
+    return () => label.texture.dispose();
+  }, [label, invalidate]);
+
+  // Només pintem quan hi ha scroll o l'animació encara s'està assentant: en repòs, la GPU no treballa.
+  useEffect(() => {
+    const onScroll = () => invalidate();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [invalidate]);
 
   // Escriptori: ampolles a la columna dreta. Mòbil: sota el text, més petites.
   const wide = viewport.aspect > 1.1;
@@ -147,63 +159,75 @@ function Bottles({ progress, onSettle, reducedMotion }: Omit<SceneState, "active
   const spread = (wide ? 0.78 : 0.7) * scale * 1.9;
   const floorY = centerY - (BOTTLE_HEIGHT / 2) * scale;
 
-  useFrame((state, delta) => {
+  useFrame((_, rawDelta) => {
     const target = reducedMotion ? 1 : (progress.current ?? 0);
-    smooth.current = MathUtils.damp(smooth.current, target, 4.5, delta);
-    const p = smooth.current;
-    const enter = easeOutCubic(MathUtils.clamp(p / 0.7, 0, 1));
-    const settle = MathUtils.clamp((p - 0.6) / 0.15, 0, 1);
-    const time = state.clock.elapsedTime;
-    const idle = reducedMotion ? 0 : settle;
+    const delta = Math.min(rawDelta, MAX_DELTA);
+    smooth.current = MathUtils.damp(smooth.current, target, SMOOTHING, delta);
+    if (Math.abs(smooth.current - target) < 0.0005) smooth.current = target;
+    else invalidate();
+
+    const enter = easeOutCubic(MathUtils.clamp(smooth.current / 0.7, 0, 1));
     const offscreen = viewport.width * 0.5 + 1.5;
     const turns = Math.PI * 3;
 
-    for (const [ref, side] of [[left, -1], [right, 1]] as const) {
+    ([[left, leftShadow, -1], [right, rightShadow, 1]] as const).forEach(([ref, shadowRef, side]) => {
       const group = ref.current;
-      if (!group) continue;
-      const restX = centerX + side * spread;
-      group.position.x = MathUtils.lerp(side * offscreen + centerX, restX, enter);
-      group.position.y = MathUtils.lerp(centerY - 1.4, centerY, enter) + Math.sin(time * 1.1 + side) * 0.035 * idle;
-      group.position.z = MathUtils.lerp(-1.5, 0, enter);
-      const restRotation = side < 0 ? 0 : Math.PI;
-      group.rotation.y = restRotation - side * turns * (1 - enter) + Math.sin(time * 0.6 + side) * 0.1 * idle;
-      group.rotation.z = -side * 0.55 * (1 - enter);
-      group.rotation.x = 0.25 * (1 - enter);
+      if (!group) return;
+      const x = MathUtils.lerp(side * offscreen + centerX, centerX + side * spread, enter);
+      group.position.set(x, MathUtils.lerp(centerY - 1.4, centerY, enter), MathUtils.lerp(-1.5, 0, enter));
+      group.rotation.set(0.25 * (1 - enter), (side < 0 ? 0 : Math.PI) - side * turns * (1 - enter), -side * 0.55 * (1 - enter));
       group.scale.setScalar(scale);
-    }
-    onSettle?.(settle);
+
+      const shadow = shadowRef.current;
+      if (shadow) {
+        shadow.position.set(x, floorY + 0.01, 0);
+        (shadow.material as MeshBasicMaterial).opacity = enter;
+      }
+    });
   });
 
   return (
     <>
-      <Bottle label={label} groupRef={left} />
-      <Bottle label={label} groupRef={right} mirrorStrap />
-      <ContactShadows position={[centerX, floorY - 0.01, 0]} scale={wide ? 9 : 5} opacity={0.35} blur={2.6} far={3} resolution={512} color="#1b262e" />
+      <Bottle label={label.texture} groupRef={left} />
+      <Bottle label={label.texture} groupRef={right} mirrorStrap />
+      <BlobShadow meshRef={leftShadow} texture={shadowTexture} scale={scale} />
+      <BlobShadow meshRef={rightShadow} texture={shadowTexture} scale={scale} />
     </>
   );
 }
 
-export default function BottleScene({ progress, onSettle, reducedMotion, active }: SceneState) {
+export default function BottleScene({ progress, reducedMotion }: SceneState) {
+  const [dpr, setDpr] = useState(1.5);
   return (
     <Canvas
-      frameloop={active ? "always" : "never"}
-      dpr={[1, 1.75]}
+      frameloop="demand"
+      dpr={dpr}
       camera={{ position: [0, 0, 13], fov: 32 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
+      // La transmissió del vidre a mitja resolució: no es nota i estalvia molta GPU.
+      onCreated={({ gl }) => {
+        gl.transmissionResolutionScale = 0.5;
+      }}
+      // No escoltem el scroll per recalcular la mida (a mòbil, la barra d'adreces la canvia contínuament).
+      resize={{ scroll: false, debounce: { scroll: 0, resize: 150 } }}
       flat
       aria-hidden="true"
     >
+      {/* Si el dispositiu no arriba, baixem la resolució en lloc de perdre fotogrames. */}
+      <PerformanceMonitor onDecline={() => setDpr(1)} onIncline={() => setDpr(1.5)} flipflops={3} onFallback={() => setDpr(1)} />
       <color attach="background" args={["#eef2f3"]} />
       <ambientLight intensity={0.5} />
       <directionalLight position={[4, 6, 6]} intensity={1.6} />
-      <Environment resolution={256} frames={1}>
+      <Environment resolution={128} frames={1}>
         <Lightformer intensity={2.4} position={[0, 5, -8]} scale={[12, 6, 1]} />
         <Lightformer intensity={3} rotation-y={Math.PI / 2} position={[-6, 1, 0]} scale={[14, 0.6, 1]} />
         <Lightformer intensity={3} rotation-y={-Math.PI / 2} position={[6, 1, 0]} scale={[14, 0.6, 1]} />
         <Lightformer intensity={1.6} rotation-y={Math.PI / 2} position={[-6, -1.5, 2]} scale={[14, 0.4, 1]} />
         <Lightformer form="ring" intensity={2} position={[3, 3, 6]} scale={2.5} />
       </Environment>
-      <Bottles progress={progress} onSettle={onSettle} reducedMotion={reducedMotion} />
+      <Bottles progress={progress} reducedMotion={reducedMotion} />
+      {/* Compila tots els shaders en muntar, abans que la secció sigui visible. */}
+      <Preload all />
     </Canvas>
   );
 }

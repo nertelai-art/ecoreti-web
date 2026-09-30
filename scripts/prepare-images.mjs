@@ -20,7 +20,6 @@ const photos = {
   "panel-sandwich.jpeg": "substitucio-coberta-panell.jpg",
   "cubierta-residencial-1-e1784752929328.jpeg": "materials-retirats-palets.jpg",
   "visita-tecnica-e1784752870547.jpeg": "estructura-metallica-retirada.jpg",
-  "ampolla-proposta-1.jpg": "ampolla-eco-reti.jpg",
 };
 
 for (const [src, out] of Object.entries(photos)) {
@@ -30,6 +29,12 @@ for (const [src, out] of Object.entries(photos)) {
     .jpeg({ quality: 80, mozjpeg: true })
     .toFile(`${OUT}/${out}`);
 }
+
+// La proposta porta rètols impresos («PROPOSTA 1», «FRONTAL», «POSTERIOR»): els retallem.
+await sharp(`${SRC}/ampolla-proposta-1.jpg`)
+  .extract({ left: 0, top: 115, width: 1536, height: 830 })
+  .jpeg({ quality: 82, mozjpeg: true })
+  .toFile(`${OUT}/ampolla-eco-reti.jpg`);
 
 const logos = {
   "eco-reti-logo-transparent.png": "eco-reti.png",

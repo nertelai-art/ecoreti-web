@@ -95,8 +95,6 @@ const es = {
     title: "Avanzamos hacia un futuro más",
     accent: "seguro.",
     lead: "Nuestra botella reutilizable lleva impreso lo que guía cada obra: personas, entornos y soluciones sostenibles.",
-    front: "Frontal",
-    back: "Posterior",
     values: ["Retirar con seguridad", "Proteger a las personas", "Recuperar los entornos", "Construir un mañana más sostenible"],
     claim: "Comprometidos con las personas y el territorio.",
     imageAlt: "Botella de cristal reutilizable de Eco-Reti con tapón metálico y cordón naranja, vista frontal y posterior",
