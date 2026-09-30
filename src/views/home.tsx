@@ -1,5 +1,6 @@
 import { BottleShowcase } from "@/components/bottle/BottleShowcase";
 import { JsonLd } from "@/components/JsonLd";
+import { RoofShowcase } from "@/components/roof/RoofShowcase";
 import { Hero } from "@/components/sections/Hero";
 import { CtaBand, Faq, Intro, Process, ServicesGrid, Testimonials, Why } from "@/components/sections/HomeSections";
 import { Stats } from "@/components/sections/Stats";
@@ -23,6 +24,7 @@ export function HomePage({ locale }: { locale: Locale }) {
         </Container>
       </div>
       <Intro locale={locale} t={t.home.intro} />
+      <RoofShowcase t={t.roof} />
       <ServicesGrid locale={locale} t={t.home.services} items={t.services.items} />
       <Process t={t.home.process} />
       <BottleShowcase t={t.bottle} />

@@ -21,7 +21,6 @@ const ca: Dictionary = {
         "Empresa inscrita al RERA especialitzada en retirada d'amiant (uralita), substitució de cobertes i gestió de residus a Girona i a tot Catalunya. Demana el teu pressupost.",
     },
     hero: {
-      eyebrow: "Empresa inscrita al RERA · Girona i tot Catalunya",
       title: "Retirem l'amiant.",
       titleAccent: "Renovem la teva coberta.",
       lead: "Desmuntatge segur de cobertes de fibrociment (uralita), gestió de residus i coberta nova, eficient i amb garantia. Ens n'ocupem de tot, del pla de treball a l'últim certificat.",
@@ -90,6 +89,19 @@ const ca: Dictionary = {
       text: "Explica'ns el teu cas i et prepararem una proposta adaptada, amb total transparència des del primer moment.",
       button: "Demana pressupost",
     },
+  },
+  roof: {
+    eyebrow: "Així treballem",
+    title: "De la uralita",
+    accent: "al sol.",
+    lead: "Retirem la coberta de fibrociment amb amiant, n'instal·lem una de nova i la deixem a punt per produir energia.",
+    steps: [
+      { title: "Coberta d'uralita", text: "Fibrociment amb amiant, envellit i fràgil." },
+      { title: "Retirada segura", text: "Placa a placa, amb pla de treball aprovat i el residu encapsulat." },
+      { title: "Coberta nova", text: "Panell sandvitx aïllant, estanc i durador." },
+      { title: "Plaques solars", text: "La coberta queda a punt per generar energia neta." },
+    ],
+    imageAlt: "Nau industrial amb la coberta de fibrociment en procés de retirada i plaques solars instal·lades",
   },
   bottle: {
     eyebrow: "El nostre compromís",
