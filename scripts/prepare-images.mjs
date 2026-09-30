@@ -38,9 +38,6 @@ await sharp(`${SRC}/ampolla-proposta-1.jpg`)
 
 const logos = {
   "eco-reti-logo-transparent.png": "eco-reti.png",
-  "banner-1.png": "kit-digital.png",
-  "ES_Financiado_por_la_Union_Europea2-1024x256-1.png": "financiado-ue-nextgeneration.png",
-  "Logo-PRTR-tres-lineas_COLOR.png": "prtr.png",
   "logo-rera-transparente-rqwfbfyzgyp9113vvra9s9kgz5s0n042257cf1pewu.png": "rera.png",
 };
 for (const [src, out] of Object.entries(logos)) {

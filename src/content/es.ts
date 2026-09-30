@@ -270,7 +270,6 @@ const es = {
     legal: "Aviso legal",
     privacy: "Política de privacidad",
     cookies: "Política de cookies",
-    funding: "Proyecto financiado por el programa Kit Digital, con fondos Next Generation EU del Plan de Recuperación, Transformación y Resiliencia.",
     rights: "Todos los derechos reservados.",
   },
   notFound: { title: "Página no encontrada", text: "La página que buscas no existe o ha cambiado de dirección.", back: "Volver al inicio" },
