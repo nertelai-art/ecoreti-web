@@ -261,7 +261,6 @@ const ca: Dictionary = {
     legal: "Avís legal",
     privacy: "Política de privacitat",
     cookies: "Política de galetes",
-    funding: "Projecte finançat pel programa Kit Digital, amb fons Next Generation EU del Pla de Recuperació, Transformació i Resiliència.",
     rights: "Tots els drets reservats.",
   },
   notFound: { title: "Pàgina no trobada", text: "La pàgina que busques no existeix o ha canviat d'adreça.", back: "Torna a l'inici" },
