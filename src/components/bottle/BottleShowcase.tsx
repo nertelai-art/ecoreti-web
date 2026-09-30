@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Dictionary } from "@/content";
 import { Icon, type IconName } from "../icons";
 import { Eyebrow } from "../ui";
@@ -44,23 +44,22 @@ function useReducedMotion() {
 export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
   const section = useRef<HTMLElement>(null);
   const progress = useRef(0);
-  const captions = useRef<HTMLDivElement>(null);
   const mode = useRenderMode();
   const reducedMotion = useReducedMotion();
   const [near, setNear] = useState(false);
-  const [visible, setVisible] = useState(false);
 
+  // Muntem l'escena amb marge: així la descàrrega i la compilació de shaders passen abans d'arribar-hi.
   useEffect(() => {
     const element = section.current;
     if (!element) return;
-    const nearObserver = new IntersectionObserver(([entry]) => entry?.isIntersecting && setNear(true), { rootMargin: "800px 0px" });
-    const visibleObserver = new IntersectionObserver(([entry]) => setVisible(Boolean(entry?.isIntersecting)));
-    nearObserver.observe(element);
-    visibleObserver.observe(element);
-    return () => {
-      nearObserver.disconnect();
-      visibleObserver.disconnect();
-    };
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) {
+        setNear(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: "1500px 0px" });
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -80,11 +79,6 @@ export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
     };
   }, []);
 
-  // Els rètols «Frontal / Posterior» apareixen quan les ampolles aterren, sense re-renderitzar React.
-  const onSettle = useCallback((settle: number) => {
-    if (captions.current) captions.current.style.opacity = String(settle);
-  }, []);
-
   const is3d = mode === "3d";
 
   return (
@@ -92,7 +86,7 @@ export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
       <div className={`${is3d ? "sticky top-0 h-[100svh]" : "py-24"} overflow-hidden`}>
         {is3d && near && (
           <div className="absolute inset-0">
-            <BottleScene progress={progress} onSettle={onSettle} reducedMotion={reducedMotion} active={visible} />
+            <BottleScene progress={progress} reducedMotion={reducedMotion} />
           </div>
         )}
 
@@ -123,17 +117,6 @@ export function BottleShowcase({ t }: { t: Dictionary["bottle"] }) {
           )}
         </div>
 
-        {is3d && (
-          <div
-            ref={captions}
-            aria-hidden="true"
-            style={{ opacity: 0 }}
-            className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center gap-[18vw] text-xs font-semibold uppercase tracking-[0.3em] text-ink-700 transition-opacity lg:bottom-10 lg:left-[40%] lg:gap-[12vw]"
-          >
-            <span>{t.front}</span>
-            <span>{t.back}</span>
-          </div>
-        )}
 
         {/* Per a lectors de pantalla i cercadors: el contingut de l'ampolla com a text. */}
         <p className="sr-only">
