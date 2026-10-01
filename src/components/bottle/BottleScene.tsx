@@ -1,10 +1,12 @@
 "use client";
 
-import { Environment, Lightformer, PerformanceMonitor } from "@react-three/drei";
+import { PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { CanvasTexture, CatmullRomCurve3, MathUtils, Vector2, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
 import { CompileGate } from "../three/CompileGate";
+import type { LightformerSpec } from "../three/environment-builder";
+import { PrefilteredEnvironment } from "../three/PrefilteredEnvironment";
 import { createLabelTexture, LABEL_HEIGHT, LABEL_RADIUS } from "./label-texture";
 
 const R = 0.62;
@@ -197,6 +199,15 @@ function Bottles({ progress, reducedMotion }: SceneState) {
   );
 }
 
+// Llums d'estudi per als reflexos. Constant de mòdul: la referència ha de ser estable.
+const STUDIO_LIGHTS: LightformerSpec[] = [
+  { intensity: 2.4, position: [0, 5, -8], scale: [12, 6, 1] },
+  { intensity: 3, position: [-6, 1, 0], scale: [14, 0.6, 1] },
+  { intensity: 3, position: [6, 1, 0], scale: [14, 0.6, 1] },
+  { intensity: 1.6, position: [-6, -1.5, 2], scale: [14, 0.4, 1] },
+  { form: "ring", intensity: 2, position: [3, 3, 6], scale: 2.5 },
+];
+
 export default function BottleScene({ progress, reducedMotion }: SceneState) {
   const [dpr, setDpr] = useState(1.5);
   return (
@@ -219,13 +230,7 @@ export default function BottleScene({ progress, reducedMotion }: SceneState) {
       <color attach="background" args={["#eef2f3"]} />
       <ambientLight intensity={0.5} />
       <directionalLight position={[4, 6, 6]} intensity={1.6} />
-      <Environment resolution={128} frames={1}>
-        <Lightformer intensity={2.4} position={[0, 5, -8]} scale={[12, 6, 1]} />
-        <Lightformer intensity={3} rotation-y={Math.PI / 2} position={[-6, 1, 0]} scale={[14, 0.6, 1]} />
-        <Lightformer intensity={3} rotation-y={-Math.PI / 2} position={[6, 1, 0]} scale={[14, 0.6, 1]} />
-        <Lightformer intensity={1.6} rotation-y={Math.PI / 2} position={[-6, -1.5, 2]} scale={[14, 0.4, 1]} />
-        <Lightformer form="ring" intensity={2} position={[3, 3, 6]} scale={2.5} />
-      </Environment>
+      <PrefilteredEnvironment lights={STUDIO_LIGHTS} resolution={128} />
       {/* Compila els shaders en segon pla i no pinta fins que estan a punt: el primer pintat no bloqueja. */}
       <CompileGate name="bottle">
         <Bottles progress={progress} reducedMotion={reducedMotion} />
