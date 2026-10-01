@@ -1,6 +1,6 @@
 "use client";
 
-import { Environment, Lightformer, PerformanceMonitor, Preload } from "@react-three/drei";
+import { Environment, Lightformer, PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
@@ -18,6 +18,7 @@ import {
   type PerspectiveCamera,
 } from "three";
 import { seededRandom } from "@/lib/random";
+import { CompileGate } from "../three/CompileGate";
 import { ROOF_PHASES } from "./roof-phases";
 import { endWallTexture, fibrocementTexture, longWallTexture, radialFade, solarTexture } from "./roof-textures";
 
@@ -359,8 +360,10 @@ export default function RoofScene({ progress, reducedMotion }: RoofSceneState) {
         <Lightformer intensity={2} position={[0, 8, 4]} scale={[14, 6, 1]} rotation-x={-Math.PI / 3} />
         <Lightformer intensity={1.2} position={[-8, 3, 2]} rotation-y={Math.PI / 2} scale={[10, 3, 1]} />
       </Environment>
-      <Building progress={progress} reducedMotion={reducedMotion} />
-      <Preload all />
+      {/* Compila els shaders en segon pla i no pinta fins que estan a punt: el primer pintat no bloqueja. */}
+      <CompileGate name="roof">
+        <Building progress={progress} reducedMotion={reducedMotion} />
+      </CompileGate>
     </Canvas>
   );
 }

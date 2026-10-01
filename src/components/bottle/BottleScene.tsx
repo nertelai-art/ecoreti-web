@@ -1,9 +1,10 @@
 "use client";
 
-import { Environment, Lightformer, PerformanceMonitor, Preload } from "@react-three/drei";
+import { Environment, Lightformer, PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { CanvasTexture, CatmullRomCurve3, MathUtils, Vector2, Vector3, type Group, type Mesh, type MeshBasicMaterial } from "three";
+import { CompileGate } from "../three/CompileGate";
 import { createLabelTexture, LABEL_HEIGHT, LABEL_RADIUS } from "./label-texture";
 
 const R = 0.62;
@@ -225,9 +226,10 @@ export default function BottleScene({ progress, reducedMotion }: SceneState) {
         <Lightformer intensity={1.6} rotation-y={Math.PI / 2} position={[-6, -1.5, 2]} scale={[14, 0.4, 1]} />
         <Lightformer form="ring" intensity={2} position={[3, 3, 6]} scale={2.5} />
       </Environment>
-      <Bottles progress={progress} reducedMotion={reducedMotion} />
-      {/* Compila tots els shaders en muntar, abans que la secció sigui visible. */}
-      <Preload all />
+      {/* Compila els shaders en segon pla i no pinta fins que estan a punt: el primer pintat no bloqueja. */}
+      <CompileGate name="bottle">
+        <Bottles progress={progress} reducedMotion={reducedMotion} />
+      </CompileGate>
     </Canvas>
   );
 }

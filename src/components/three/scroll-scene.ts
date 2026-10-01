@@ -34,23 +34,39 @@ export function useReducedMotion() {
   return useSyncExternalStore(subscribeReducedMotion, () => window.matchMedia(reducedMotionQuery).matches, () => false);
 }
 
+/** Executa `callback` quan el fil principal està lliure (o al cap de 2 s). Retorna com cancel·lar-ho. */
+function whenIdle(callback: () => void) {
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(callback, { timeout: 2000 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(callback, 200);
+  return () => window.clearTimeout(id);
+}
+
 /** Es torna `true` (per sempre) quan l'element és a menys de `margin` de la pantalla. */
 export function useNearViewport(ref: RefObject<HTMLElement | null>, margin = "1500px") {
   const [near, setNear] = useState(false);
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
+    let idle: (() => void) | undefined;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          setNear(true);
           observer.disconnect();
+          // Arrencar three.js i crear l'escena és feina pesada: esperem que el navegador estigui lliure
+          // perquè no competeixi amb la càrrega de la pàgina ni amb una interacció de l'usuari.
+          idle = whenIdle(() => setNear(true));
         }
       },
       { rootMargin: `${margin} 0px` },
     );
     observer.observe(element);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      idle?.();
+    };
   }, [ref, margin]);
   return near;
 }
