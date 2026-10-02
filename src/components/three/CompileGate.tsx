@@ -7,6 +7,8 @@ type Phase = "environment" | "compiling" | "ready";
 
 // Si la compilació en segon pla no acaba (controlador antic, context perdut), pintem igualment.
 const COMPILE_TIMEOUT_MS = 4000;
+// Si el mapa d'entorn no arriba (worker i camí de reserva fallits), pintem sense reflexos abans que res.
+const ENVIRONMENT_TIMEOUT_MS = 5000;
 
 /**
  * Evita que el primer pintat de l'escena bloquegi la pàgina.
@@ -28,6 +30,12 @@ export function CompileGate({ name, children }: { name: string; children: ReactN
   const invalidate = useThree((state) => state.invalidate);
   const setFrameloop = useThree((state) => state.setFrameloop);
   const [phase, setPhase] = useState<Phase>("environment");
+
+  useEffect(() => {
+    if (phase !== "environment") return;
+    const timeout = window.setTimeout(() => setPhase("compiling"), ENVIRONMENT_TIMEOUT_MS);
+    return () => window.clearTimeout(timeout);
+  }, [phase]);
 
   useFrame(() => {
     if (phase !== "environment") return;
