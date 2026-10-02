@@ -1,5 +1,6 @@
 import { CanvasTexture, SRGBColorSpace } from "three";
 import { iconPaths, type IconName } from "../icons";
+import { fillRoundedRect } from "./rounded-rect";
 
 // Geometria de l'etiqueta: un cilindre obert una mica més gran que el vidre.
 export const LABEL_RADIUS = 0.626;
@@ -66,30 +67,36 @@ export function createLabelTexture(): { texture: CanvasTexture; ready: Promise<v
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   texture.anisotropy = 8;
-  const ready = drawLabel(canvas).then(() => {
-    texture.needsUpdate = true;
-  });
+  // Passi el que passi, la textura es torna a pujar amb el que s'hagi pogut dibuixar: un error a
+  // mig camí no ha de deixar l'ampolla en blanc.
+  const ready = drawLabel(canvas)
+    .catch((error) => console.error("[ampolla] etiqueta incompleta:", error instanceof Error ? error.message : String(error)))
+    .then(() => {
+      texture.needsUpdate = true;
+    });
   return { texture, ready };
 }
 
 async function drawLabel(canvas: HTMLCanvasElement) {
   const family = getComputedStyle(document.documentElement).getPropertyValue("--font-barlow").trim() || "sans-serif";
-  await Promise.all([document.fonts.load(`600 80px ${family}`), document.fonts.load(`500 36px ${family}`)]);
-  const logo = await loadImage("/images/logos/eco-reti.png");
+  // Cada recurs tolera el seu error: sense tipografia es dibuixa amb la de reserva, i sense logo
+  // es dibuixa la resta de la impressió.
+  const [logo] = await Promise.all([
+    loadImage("/images/logos/eco-reti.png").catch(() => null),
+    document.fonts.load(`600 80px ${family}`).catch(() => undefined),
+    document.fonts.load(`500 36px ${family}`).catch(() => undefined),
+  ]);
 
   const ctx = canvas.getContext("2d")!;
   ctx.textBaseline = "alphabetic";
 
   // ── Frontal ──
   const logoWidth = 540;
-  const logoHeight = (logoWidth * logo.height) / logo.width;
-  ctx.drawImage(logo, FRONT_X - logoWidth / 2, 70, logoWidth, logoHeight);
+  if (logo) ctx.drawImage(logo, FRONT_X - logoWidth / 2, 70, logoWidth, (logoWidth * logo.height) / logo.width);
 
   const left = FRONT_X - 250;
   ctx.fillStyle = LEAF;
-  ctx.beginPath();
-  ctx.roundRect(left, 480, 120, 14, 7);
-  ctx.fill();
+  fillRoundedRect(ctx, left, 480, 120, 14, 7);
 
   ctx.font = `600 84px ${family}`;
   const headline: Segment[][] = [[{ text: "Avancem" }], [{ text: "cap a un" }], [{ text: "futur més" }], [{ text: "segur.", color: LEAF }]];
@@ -113,9 +120,7 @@ async function drawLabel(canvas: HTMLCanvasElement) {
   });
 
   ctx.fillStyle = LEAF;
-  ctx.beginPath();
-  ctx.roundRect(backLeft, 1110, 120, 14, 7);
-  ctx.fill();
+  fillRoundedRect(ctx, backLeft, 1110, 120, 14, 7);
 
   ctx.font = `600 62px ${family}`;
   const claim: Segment[][] = [
