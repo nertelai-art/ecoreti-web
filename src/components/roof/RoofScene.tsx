@@ -1,6 +1,6 @@
 "use client";
 
-import { Environment, Lightformer, PerformanceMonitor, Preload } from "@react-three/drei";
+import { PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import {
@@ -18,6 +18,9 @@ import {
   type PerspectiveCamera,
 } from "three";
 import { seededRandom } from "@/lib/random";
+import { CompileGate } from "../three/CompileGate";
+import type { LightformerSpec } from "../three/environment-builder";
+import { PrefilteredEnvironment } from "../three/PrefilteredEnvironment";
 import { ROOF_PHASES } from "./roof-phases";
 import { endWallTexture, fibrocementTexture, longWallTexture, radialFade, solarTexture } from "./roof-textures";
 
@@ -330,6 +333,12 @@ function Building({ progress, reducedMotion }: RoofSceneState) {
   );
 }
 
+// Llums d'estudi per als reflexos. Constant de mòdul: la referència ha de ser estable.
+const SKY_LIGHTS: LightformerSpec[] = [
+  { intensity: 2, position: [0, 8, 4], scale: [14, 6, 1] },
+  { intensity: 1.2, position: [-8, 3, 2], scale: [10, 3, 1] },
+];
+
 export default function RoofScene({ progress, reducedMotion }: RoofSceneState) {
   const [dpr, setDpr] = useState(1.5);
   return (
@@ -355,12 +364,11 @@ export default function RoofScene({ progress, reducedMotion }: RoofSceneState) {
         shadow-camera-top={9}
         shadow-camera-bottom={-9}
       />
-      <Environment resolution={64} frames={1}>
-        <Lightformer intensity={2} position={[0, 8, 4]} scale={[14, 6, 1]} rotation-x={-Math.PI / 3} />
-        <Lightformer intensity={1.2} position={[-8, 3, 2]} rotation-y={Math.PI / 2} scale={[10, 3, 1]} />
-      </Environment>
-      <Building progress={progress} reducedMotion={reducedMotion} />
-      <Preload all />
+      <PrefilteredEnvironment lights={SKY_LIGHTS} resolution={64} />
+      {/* Compila els shaders en segon pla i no pinta fins que estan a punt: el primer pintat no bloqueja. */}
+      <CompileGate name="roof">
+        <Building progress={progress} reducedMotion={reducedMotion} />
+      </CompileGate>
     </Canvas>
   );
 }
